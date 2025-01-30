@@ -31,6 +31,7 @@ export interface ExtensionMessage {
 		| "mcpDownloadDetails"
 		| "commitSearchResults"
 	text?: string
+	compressedModeEnabled?: boolean
 	action?:
 		| "chatButtonClicked"
 		| "mcpButtonClicked"
@@ -73,6 +74,7 @@ export interface ExtensionState {
 	autoApprovalSettings: AutoApprovalSettings
 	browserSettings: BrowserSettings
 	chatSettings: ChatSettings
+	compressedModeEnabled: boolean
 	isLoggedIn: boolean
 	platform: Platform
 	userInfo?: {
