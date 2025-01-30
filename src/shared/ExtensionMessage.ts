@@ -35,6 +35,7 @@ export interface ExtensionMessage {
 		| "isImageUrlResult"
 		| "didUpdateSettings"
 	text?: string
+	compressedModeEnabled?: boolean
 	action?:
 		| "chatButtonClicked"
 		| "mcpButtonClicked"
@@ -90,6 +91,7 @@ export interface ExtensionState {
 	autoApprovalSettings: AutoApprovalSettings
 	browserSettings: BrowserSettings
 	chatSettings: ChatSettings
+	compressedModeEnabled: boolean
 	platform: Platform
 	userInfo?: {
 		displayName: string | null

@@ -37,6 +37,7 @@ import { TelemetrySetting } from "../../shared/TelemetrySetting"
 import { cleanupLegacyCheckpoints } from "../../integrations/checkpoints/CheckpointMigration"
 import CheckpointTracker from "../../integrations/checkpoints/CheckpointTracker"
 
+import { DEFAULT_COMPRESSED_MODE_ENABLED as DEFAULT_COMPRESSED_MODE_SETTING } from "../../shared/CompressedModeEnabled"
 /*
 https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/default/weather-webview/src/providers/WeatherViewProvider.ts
 
@@ -108,6 +109,7 @@ type GlobalStateKey =
 	| "asksageApiUrl"
 	| "thinkingBudgetTokens"
 	| "planActSeparateModelsSetting"
+	| "compressedModeEnabled"
 
 export const GlobalFileNames = {
 	apiConversationHistory: "api_conversation_history.json",
@@ -282,14 +284,21 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 
 	async initClineWithTask(task?: string, images?: string[]) {
 		await this.clearTask() // ensures that an existing task doesn't exist before starting a new one, although this shouldn't be possible since user must clear task before starting a new one
-		const { apiConfiguration, customInstructions, autoApprovalSettings, browserSettings, chatSettings } =
-			await this.getState()
+		const {
+			apiConfiguration,
+			customInstructions,
+			autoApprovalSettings,
+			browserSettings,
+			chatSettings,
+			compressedModeEnabled,
+		} = await this.getState()
 		this.cline = new Cline(
 			this,
 			apiConfiguration,
 			autoApprovalSettings,
 			browserSettings,
 			chatSettings,
+			compressedModeEnabled,
 			customInstructions,
 			task,
 			images,
@@ -298,14 +307,21 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 
 	async initClineWithHistoryItem(historyItem: HistoryItem) {
 		await this.clearTask()
-		const { apiConfiguration, customInstructions, autoApprovalSettings, browserSettings, chatSettings } =
-			await this.getState()
+		const {
+			apiConfiguration,
+			customInstructions,
+			autoApprovalSettings,
+			browserSettings,
+			chatSettings,
+			compressedModeEnabled,
+		} = await this.getState()
 		this.cline = new Cline(
 			this,
 			apiConfiguration,
 			autoApprovalSettings,
 			browserSettings,
 			chatSettings,
+			compressedModeEnabled,
 			customInstructions,
 			undefined,
 			undefined,
@@ -556,6 +572,15 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 							await this.updateGlobalState("autoApprovalSettings", message.autoApprovalSettings)
 							if (this.cline) {
 								this.cline.autoApprovalSettings = message.autoApprovalSettings
+							}
+							await this.postStateToWebview()
+						}
+						break
+					case "compressedModeEnabled":
+						if (message.compressedModeEnabled !== undefined) {
+							await this.updateGlobalState("compressedModeEnabled", message.compressedModeEnabled)
+							if (this.cline) {
+								this.cline.compressedModeEnabled = message.compressedModeEnabled
 							}
 							await this.postStateToWebview()
 						}
@@ -1858,6 +1883,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 			mcpMarketplaceEnabled,
 			telemetrySetting,
 			planActSeparateModelsSetting,
+			compressedModeEnabled,
 		} = await this.getState()
 
 		return {
@@ -1878,6 +1904,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 			browserSettings,
 			chatSettings,
 			userInfo,
+			compressedModeEnabled,
 			mcpMarketplaceEnabled,
 			telemetrySetting,
 			planActSeparateModelsSetting,
@@ -1990,6 +2017,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 			previousModeModelId,
 			previousModeModelInfo,
 			previousModeThinkingBudgetTokens,
+			compressedModeEnabled,
 			qwenApiLine,
 			liteLlmApiKey,
 			telemetrySetting,
@@ -2052,6 +2080,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 			this.getGlobalState("previousModeModelId") as Promise<string | undefined>,
 			this.getGlobalState("previousModeModelInfo") as Promise<ModelInfo | undefined>,
 			this.getGlobalState("previousModeThinkingBudgetTokens") as Promise<number | undefined>,
+			this.getGlobalState("compressedModeEnabled") as Promise<boolean | undefined>,
 			this.getGlobalState("qwenApiLine") as Promise<string | undefined>,
 			this.getSecret("liteLlmApiKey") as Promise<string | undefined>,
 			this.getGlobalState("telemetrySetting") as Promise<TelemetrySetting | undefined>,
@@ -2164,6 +2193,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 			previousModeModelId,
 			previousModeModelInfo,
 			previousModeThinkingBudgetTokens,
+			compressedModeEnabled: compressedModeEnabled || DEFAULT_COMPRESSED_MODE_SETTING,
 			mcpMarketplaceEnabled,
 			telemetrySetting: telemetrySetting || "unset",
 			planActSeparateModelsSetting,
