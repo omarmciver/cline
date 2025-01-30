@@ -10,6 +10,7 @@ import { vscode } from "../utils/vscode"
 import { DEFAULT_BROWSER_SETTINGS } from "../../../src/shared/BrowserSettings"
 import { DEFAULT_CHAT_SETTINGS } from "../../../src/shared/ChatSettings"
 import { TelemetrySetting } from "../../../src/shared/TelemetrySetting"
+import { DEFAULT_COMPRESSED_MODE_ENABLED } from "../../../src/shared/CompressedModeEnabled"
 
 interface ExtensionStateContextType extends ExtensionState {
 	didHydrateState: boolean
@@ -41,6 +42,7 @@ export const ExtensionStateContextProvider: React.FC<{
 		autoApprovalSettings: DEFAULT_AUTO_APPROVAL_SETTINGS,
 		browserSettings: DEFAULT_BROWSER_SETTINGS,
 		chatSettings: DEFAULT_CHAT_SETTINGS,
+		compressedModeEnabled: DEFAULT_COMPRESSED_MODE_ENABLED,
 		platform: DEFAULT_PLATFORM,
 		telemetrySetting: "unset",
 		vscMachineId: "",
@@ -62,7 +64,12 @@ export const ExtensionStateContextProvider: React.FC<{
 		const message: ExtensionMessage = event.data
 		switch (message.type) {
 			case "state": {
-				setState(message.state!)
+				if (message.state) {
+					setState({
+						...message.state,
+						compressedModeEnabled: message.state.compressedModeEnabled ?? DEFAULT_COMPRESSED_MODE_ENABLED,
+					})
+				}
 				const config = message.state?.apiConfiguration
 				const hasKey = config
 					? [

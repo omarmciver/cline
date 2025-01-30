@@ -41,6 +41,7 @@ export interface ExtensionMessage {
 		| "totalTasksSize"
 		| "addToInput"
 	text?: string
+	compressedModeEnabled?: boolean
 	action?:
 		| "chatButtonClicked"
 		| "mcpButtonClicked"
@@ -93,6 +94,7 @@ export interface ExtensionState {
 	autoApprovalSettings: AutoApprovalSettings
 	browserSettings: BrowserSettings
 	chatSettings: ChatSettings
+	compressedModeEnabled: boolean
 	checkpointTrackerErrorMessage?: string
 	clineMessages: ClineMessage[]
 	currentTaskItem?: HistoryItem

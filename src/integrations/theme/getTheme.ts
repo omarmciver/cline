@@ -71,13 +71,15 @@ export async function getTheme() {
 			parsed = mergeJson(parsed, includeTheme)
 		}
 
-		const converted = convertTheme(parsed)
+		if (Object.keys(parsed).length > 0) {
+			const converted = convertTheme(parsed)
 
-		converted.base = (
-			["vs", "hc-black"].includes(converted.base) ? converted.base : colorTheme.includes("Light") ? "vs" : "vs-dark"
-		) as any
+			converted.base = (
+				["vs", "hc-black"].includes(converted.base) ? converted.base : colorTheme.includes("Light") ? "vs" : "vs-dark"
+			) as any
 
-		return converted
+			return converted
+		}
 	} catch (e) {
 		console.log("Error loading color theme: ", e)
 	}

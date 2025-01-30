@@ -10,6 +10,11 @@ import { diagnosticsToProblemsString, getNewDiagnostics } from "../diagnostics"
 
 export const DIFF_VIEW_URI_SCHEME = "cline-diff"
 
+// Configuration for performance tuning
+const BATCH_SIZE = 50 // Number of lines to process in each batch
+const SCROLL_THROTTLE = 100 // Milliseconds to throttle scroll updates
+const DECORATION_THROTTLE = 50 // Milliseconds to throttle decoration updates
+
 export class DiffViewProvider {
 	editType?: "create" | "modify"
 	isEditing = false
@@ -23,6 +28,9 @@ export class DiffViewProvider {
 	private activeLineController?: DecorationController
 	private streamedLines: string[] = []
 	private preDiagnostics: [vscode.Uri, vscode.Diagnostic[]][] = []
+	private lastScrollTime = 0
+	private lastDecorationTime = 0
+	private contentBuffer: string[] = []
 
 	constructor(private cwd: string) {}
 
@@ -80,11 +88,12 @@ export class DiffViewProvider {
 			throw new Error("Required values not set")
 		}
 		this.newContent = accumulatedContent
-		const accumulatedLines = accumulatedContent.split("\n")
+
+		// Process content in an optimized way
+		this.contentBuffer = accumulatedContent.split("\n")
 		if (!isFinal) {
-			accumulatedLines.pop() // remove the last partial line only if it's not the final update
+			this.contentBuffer.pop() // remove the last partial line only if it's not the final update
 		}
-		const diffLines = accumulatedLines.slice(this.streamedLines.length)
 
 		const diffEditor = this.activeDiffEditor
 		const document = diffEditor?.document
@@ -92,43 +101,57 @@ export class DiffViewProvider {
 			throw new Error("User closed text editor, unable to edit file...")
 		}
 
-		// Place cursor at the beginning of the diff editor to keep it out of the way of the stream animation
+		// Place cursor at the beginning
 		const beginningOfDocument = new vscode.Position(0, 0)
 		diffEditor.selection = new vscode.Selection(beginningOfDocument, beginningOfDocument)
 
-		for (let i = 0; i < diffLines.length; i++) {
-			const currentLine = this.streamedLines.length + i
-			// Replace all content up to the current line with accumulated lines
-			// This is necessary (as compared to inserting one line at a time) to handle cases where html tags on previous lines are auto closed for example
+		// Process content in batches
+		const newLines = this.contentBuffer.slice(this.streamedLines.length)
+		for (let i = 0; i < newLines.length; i += BATCH_SIZE) {
+			const batchLines = newLines.slice(i, i + BATCH_SIZE)
+			const currentBatchStartLine = this.streamedLines.length + i
+
+			// Batch update content
 			const edit = new vscode.WorkspaceEdit()
-			const rangeToReplace = new vscode.Range(0, 0, currentLine + 1, 0)
-			const contentToReplace = accumulatedLines.slice(0, currentLine + 1).join("\n") + "\n"
+			const rangeToReplace = new vscode.Range(0, 0, currentBatchStartLine + batchLines.length, 0)
+			const contentToReplace = this.contentBuffer.slice(0, currentBatchStartLine + batchLines.length).join("\n") + "\n"
 			edit.replace(document.uri, rangeToReplace, contentToReplace)
 			await vscode.workspace.applyEdit(edit)
-			// Update decorations
-			this.activeLineController.setActiveLine(currentLine)
-			this.fadedOverlayController.updateOverlayAfterLine(currentLine, document.lineCount)
-			// Scroll to the current line
-			this.scrollEditorToLine(currentLine)
+
+			// Throttled decoration updates
+			const now = Date.now()
+			if (now - this.lastDecorationTime >= DECORATION_THROTTLE) {
+				const lastLineInBatch = currentBatchStartLine + batchLines.length - 1
+				this.activeLineController.setActiveLine(lastLineInBatch)
+				this.fadedOverlayController.updateOverlayAfterLine(lastLineInBatch, document.lineCount)
+				this.lastDecorationTime = now
+			}
+
+			// Throttled scrolling (only scroll on last line of batch)
+			if (now - this.lastScrollTime >= SCROLL_THROTTLE) {
+				this.scrollEditorToLine(currentBatchStartLine + batchLines.length - 1)
+				this.lastScrollTime = now
+			}
 		}
-		// Update the streamedLines with the new accumulated content
-		this.streamedLines = accumulatedLines
+
+		// Update tracked lines
+		this.streamedLines = this.contentBuffer
+
 		if (isFinal) {
-			// Handle any remaining lines if the new content is shorter than the original
+			// Handle remaining lines if content is shorter
 			if (this.streamedLines.length < document.lineCount) {
 				const edit = new vscode.WorkspaceEdit()
 				edit.delete(document.uri, new vscode.Range(this.streamedLines.length, 0, document.lineCount, 0))
 				await vscode.workspace.applyEdit(edit)
 			}
-			// Add empty last line if original content had one
+
+			// Handle empty last line
 			const hasEmptyLastLine = this.originalContent?.endsWith("\n")
-			if (hasEmptyLastLine) {
-				const accumulatedLines = accumulatedContent.split("\n")
-				if (accumulatedLines[accumulatedLines.length - 1] !== "") {
-					accumulatedContent += "\n"
-				}
+			if (hasEmptyLastLine && this.contentBuffer[this.contentBuffer.length - 1] !== "") {
+				accumulatedContent += "\n"
 			}
-			// Clear all decorations at the end (before applying final edit)
+
+			// Clear decorations
 			this.fadedOverlayController.clear()
 			this.activeLineController.clear()
 		}
@@ -330,11 +353,17 @@ export class DiffViewProvider {
 
 	private scrollEditorToLine(line: number) {
 		if (this.activeDiffEditor) {
-			const scrollLine = line + 4
-			this.activeDiffEditor.revealRange(
-				new vscode.Range(scrollLine, 0, scrollLine, 0),
-				vscode.TextEditorRevealType.InCenter,
-			)
+			const scrollLine = Math.min(line + 4, this.activeDiffEditor.document.lineCount - 1)
+			const visibleRanges = this.activeDiffEditor.visibleRanges
+			const isLineVisible = visibleRanges.some((range) => range.start.line <= scrollLine && scrollLine <= range.end.line)
+
+			// Only scroll if the line isn't already visible
+			if (!isLineVisible) {
+				this.activeDiffEditor.revealRange(
+					new vscode.Range(scrollLine, 0, scrollLine, 0),
+					vscode.TextEditorRevealType.InCenter,
+				)
+			}
 		}
 	}
 
@@ -360,7 +389,6 @@ export class DiffViewProvider {
 		}
 	}
 
-	// close editor if open?
 	async reset() {
 		this.editType = undefined
 		this.isEditing = false
@@ -372,5 +400,8 @@ export class DiffViewProvider {
 		this.activeLineController = undefined
 		this.streamedLines = []
 		this.preDiagnostics = []
+		this.lastScrollTime = 0
+		this.lastDecorationTime = 0
+		this.contentBuffer = []
 	}
 }
