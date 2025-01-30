@@ -42,6 +42,7 @@ export interface WebviewMessage {
 		| "accountLoginClicked"
 		| "accountLogoutClicked"
 		| "subscribeEmail"
+		| "compressedModeEnabled"
 	// | "relaunchChromeDebugMode"
 	text?: string
 	disabled?: boolean
@@ -53,6 +54,7 @@ export interface WebviewMessage {
 	autoApprovalSettings?: AutoApprovalSettings
 	browserSettings?: BrowserSettings
 	chatSettings?: ChatSettings
+	compressedModeEnabled?: boolean
 
 	// For toggleToolAutoApprove
 	serverName?: string

@@ -50,7 +50,7 @@ const ACTION_METADATA: {
 ]
 
 const AutoApproveMenu = ({ style }: AutoApproveMenuProps) => {
-	const { autoApprovalSettings } = useExtensionState()
+	const { autoApprovalSettings, compressedModeEnabled } = useExtensionState()
 	const [isExpanded, setIsExpanded] = useState(false)
 	const [isHoveringCollapsibleSection, setIsHoveringCollapsibleSection] = useState(false)
 
@@ -123,6 +123,13 @@ const AutoApproveMenu = ({ style }: AutoApproveMenuProps) => {
 		[autoApprovalSettings],
 	)
 
+	const updateCompressedMode = useCallback((enabled: boolean) => {
+		vscode.postMessage({
+			type: "compressedModeEnabled",
+			compressedModeEnabled: enabled,
+		})
+	}, [])
+
 	return (
 		<div
 			style={{
@@ -134,6 +141,17 @@ const AutoApproveMenu = ({ style }: AutoApproveMenuProps) => {
 				overflowY: "auto",
 				...style,
 			}}>
+			<div style={{ margin: "6px 0" }}>
+				<VSCodeCheckbox
+					checked={compressedModeEnabled === true}
+					title="Compress (use less verbose) conversation history to reduce token usage and improve performance."
+					onChange={(e) => {
+						const checked = (e.target as HTMLInputElement).checked
+						updateCompressedMode(checked)
+					}}>
+					Compressed Mode
+				</VSCodeCheckbox>
+			</div>
 			<div
 				style={{
 					display: "flex",
