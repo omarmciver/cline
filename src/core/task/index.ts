@@ -1826,6 +1826,24 @@ export class Task {
 										),
 									)
 								} else {
+									const baseMessage =
+										`The content was successfully saved to ${relPath.toPosix()}.\n\n` +
+										`1. You do not need to re-write the file with these changes, as they have already been applied.`
+
+									if (autoFormattingEdits) {
+										pushToolResult(
+											baseMessage +
+												`\n\n` +
+												`Along with your edits, the user's editor applied the following auto-formatting to your content:\n\n${autoFormattingEdits}\n\n` +
+												`(Note: Pay close attention to changes such as single quotes being converted to double quotes, semicolons being removed or added, long lines being broken into multiple lines, adjusting indentation style, adding/removing trailing commas, etc. This will help you ensure future SEARCH/REPLACE operations to this file are accurate.)\n\n` +
+												`Here is the full, updated content of the file that was saved:\n\n` +
+												`<final_file_content path="${relPath.toPosix()}">\n${finalContent}\n</final_file_content>\n\n` +
+												`IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.\n\n` +
+												`${newProblemsMessage}`,
+										)
+									} else {
+										pushToolResult(baseMessage + `\n\n${newProblemsMessage}`)
+									}
 									pushToolResult(
 										formatResponse.fileEditWithoutUserChanges(
 											relPath,
