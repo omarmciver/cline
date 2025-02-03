@@ -82,6 +82,72 @@ export function getNextTruncationRange(
 	return [rangeStartIndex, rangeEndIndex]
 }
 
+function removeFileContentBlocks(text: string): string {
+	// Regex to match <file_content>...</file_content> blocks
+	const fileContentRegex = /<file_content[^>]*>[\s\S]*?<\/file_content>/g
+	return text.replace(fileContentRegex, "")
+}
+
+function compressMessage(message: Anthropic.Messages.MessageParam, distanceFromEnd: number): Anthropic.Messages.MessageParam {
+	// Process message content to remove file content blocks and large read_file responses
+	if (typeof message.content === "string") {
+		return {
+			...message,
+			content: removeFileContentBlocks(message.content),
+		}
+	} else if (Array.isArray(message.content)) {
+		const compressedContent = []
+		let i = 0
+		while (i < message.content.length) {
+			const block = message.content[i]
+			if (block.type === "text") {
+				// First remove any file_content blocks
+				let text = removeFileContentBlocks(block.text)
+
+				// Check if this is a read_file result block
+				const readFileMatch = text.match(/\[read_file for '([^']+)'\] Result:/)
+				if (readFileMatch && i + 1 < message.content.length && distanceFromEnd > 10) {
+					// Next block should contain the file content
+					const nextBlock = message.content[i + 1]
+					if (nextBlock.type === "text" && nextBlock.text.length > 2000) {
+						// Replace with compressed version
+						compressedContent.push({
+							type: "text" as const,
+							text: `[read_file for '${readFileMatch[1]}'] Ask again if you want this file content.\n\n`,
+						})
+						i += 2 // Skip the content block
+						continue
+					}
+				}
+				compressedContent.push({ type: "text" as const, text })
+			} else {
+				compressedContent.push(block)
+			}
+			i++
+		}
+		return {
+			...message,
+			content: compressedContent,
+		}
+	}
+	return message
+}
+
+export function getCompressedMessages(messages: Anthropic.Messages.MessageParam[]): Anthropic.Messages.MessageParam[] {
+	if (messages.length <= 1) {
+		return messages
+	}
+
+	// Keep file content and recent read_file responses in messages, compress older ones
+	return messages.map((message, index) => {
+		if (index === messages.length - 1) {
+			return message
+		}
+		const distanceFromEnd = messages.length - 1 - index
+		return compressMessage(message, distanceFromEnd)
+	})
+}
+
 export function getTruncatedMessages(
 	messages: Anthropic.Messages.MessageParam[],
 	deletedRange: [number, number] | undefined,
@@ -91,7 +157,6 @@ export function getTruncatedMessages(
 	}
 
 	const [start, end] = deletedRange
-	// the range is inclusive - both start and end indices and everything in between will be removed from the final result.
-	// NOTE: if you try to console log these, don't forget that logging a reference to an array may not provide the same result as logging a slice() snapshot of that array at that exact moment. The following DOES in fact include the latest assistant message.
+	// Apply standard truncation
 	return [...messages.slice(0, start), ...messages.slice(end + 1)]
 }
