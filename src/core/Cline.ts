@@ -54,7 +54,7 @@ import { parseMentions } from "./mentions"
 import { formatResponse } from "./prompts/responses"
 import { ClineProvider, GlobalFileNames } from "./webview/ClineProvider"
 import { OpenRouterHandler } from "../api/providers/openrouter"
-import { getNextTruncationRange, getTruncatedMessages } from "./sliding-window"
+import { getNextTruncationRange, getTruncatedMessages, getCompressedMessages } from "./sliding-window"
 import { SYSTEM_PROMPT } from "./prompts/system"
 import { addUserInstructions } from "./prompts/system"
 import { OpenAiHandler } from "../api/providers/openai"
@@ -1234,6 +1234,12 @@ export class Cline {
 			systemPrompt += addUserInstructions(settingsCustomInstructions, clineRulesFileInstructions)
 		}
 
+		// Then apply compression if enabled
+		if (this.compressedModeEnabled) {
+			this.apiConversationHistory = getCompressedMessages(this.apiConversationHistory)
+			await this.saveClineMessages()
+		}
+
 		// If the previous API request's total token usage is close to the context window, truncate the conversation history to free up space for the new request
 		if (previousApiReqIndex >= 0) {
 			const previousRequest = this.clineMessages[previousApiReqIndex]
@@ -1279,11 +1285,10 @@ export class Cline {
 			}
 		}
 
-		// conversationHistoryDeletedRange is updated only when we're close to hitting the context window, so we don't continuously break the prompt cache
-		const truncatedConversationHistory = getTruncatedMessages(
-			this.apiConversationHistory,
-			this.conversationHistoryDeletedRange,
-		)
+		// First apply any truncation needed for context window management
+		let processedHistory = getTruncatedMessages(this.apiConversationHistory, this.conversationHistoryDeletedRange)
+
+		const truncatedConversationHistory = processedHistory
 
 		let stream = this.api.createMessage(systemPrompt, truncatedConversationHistory)
 
