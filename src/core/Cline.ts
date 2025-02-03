@@ -57,7 +57,7 @@ import { ClineIgnoreController, LOCK_TEXT_SYMBOL } from "./ignore/ClineIgnoreCon
 import { parseMentions } from "./mentions"
 import { formatResponse } from "./prompts/responses"
 import { addUserInstructions, SYSTEM_PROMPT } from "./prompts/system"
-import { getNextTruncationRange, getTruncatedMessages } from "./sliding-window"
+import { getNextTruncationRange, getTruncatedMessages, getCompressedMessages } from "./sliding-window"
 import { ClineProvider, GlobalFileNames } from "./webview/ClineProvider"
 
 const cwd = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop") // may or may not exist but fs checking existence would immediately ask for permission which would be bad UX, need to come up with a better solution
@@ -1296,6 +1296,12 @@ export class Cline {
 			systemPrompt += addUserInstructions(settingsCustomInstructions, clineRulesFileInstructions, clineIgnoreInstructions)
 		}
 
+		// Then apply compression if enabled
+		if (this.compressedModeEnabled) {
+			this.apiConversationHistory = getCompressedMessages(this.apiConversationHistory)
+			await this.saveClineMessages()
+		}
+
 		// If the previous API request's total token usage is close to the context window, truncate the conversation history to free up space for the new request
 		if (previousApiReqIndex >= 0) {
 			const previousRequest = this.clineMessages[previousApiReqIndex]
@@ -1341,11 +1347,10 @@ export class Cline {
 			}
 		}
 
-		// conversationHistoryDeletedRange is updated only when we're close to hitting the context window, so we don't continuously break the prompt cache
-		const truncatedConversationHistory = getTruncatedMessages(
-			this.apiConversationHistory,
-			this.conversationHistoryDeletedRange,
-		)
+		// First apply any truncation needed for context window management
+		let processedHistory = getTruncatedMessages(this.apiConversationHistory, this.conversationHistoryDeletedRange)
+
+		const truncatedConversationHistory = processedHistory
 
 		let stream = this.api.createMessage(systemPrompt, truncatedConversationHistory)
 
