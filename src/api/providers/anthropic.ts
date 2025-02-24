@@ -80,7 +80,7 @@ export class AnthropicHandler implements ApiHandler {
 								}
 								return message
 							}),
-							// tools, // cache breakpoints go from tools > system > messages, and since tools dont change, we can just set the breakpoint at the end of system (this avoids having to set a breakpoint at the end of tools which by itself does not meet min requirements for haiku caching)
+							// tools, // cache breakpoints go from tools > system > messages, and since tools don't change, we can just set the breakpoint at the end of system (this avoids having to set a breakpoint at the end of tools which by itself does not meet min requirements for haiku caching)
 							// tool_choice: { type: "auto" },
 							// tools: tools,
 							stream: true,
@@ -141,61 +141,76 @@ export class AnthropicHandler implements ApiHandler {
 			throw error
 		}
 
-		for await (const chunk of stream) {
-			switch (chunk.type) {
-				case "message_start":
-					// tells us cache reads/writes/input/output
-					const usage = chunk.message.usage
-					yield {
-						type: "usage",
-						inputTokens: usage.input_tokens || 0,
-						outputTokens: usage.output_tokens || 0,
-						cacheWriteTokens: usage.cache_creation_input_tokens || undefined,
-						cacheReadTokens: usage.cache_read_input_tokens || undefined,
-					}
-					break
-				case "message_delta":
-					// tells us stop_reason, stop_sequence, and output tokens along the way and at the end of the message
+		try {
+			for await (const chunk of stream) {
+				switch (chunk.type) {
+					case "message_start":
+						// tells us cache reads/writes/input/output
+						const usage = chunk.message.usage
+						yield {
+							type: "usage",
+							inputTokens: usage.input_tokens || 0,
+							outputTokens: usage.output_tokens || 0,
+							cacheWriteTokens: usage.cache_creation_input_tokens || undefined,
+							cacheReadTokens: usage.cache_read_input_tokens || undefined,
+						}
+						break
+					case "message_delta":
+						// tells us stop_reason, stop_sequence, and output tokens along the way and at the end of the message
 
-					yield {
-						type: "usage",
-						inputTokens: 0,
-						outputTokens: chunk.usage.output_tokens || 0,
-					}
-					break
-				case "message_stop":
-					// no usage data, just an indicator that the message is done
-					break
-				case "content_block_start":
-					switch (chunk.content_block.type) {
-						case "text":
-							// we may receive multiple text blocks, in which case just insert a line break between them
-							if (chunk.index > 0) {
+						yield {
+							type: "usage",
+							inputTokens: 0,
+							outputTokens: chunk.usage.output_tokens || 0,
+						}
+						break
+					case "message_stop":
+						// no usage data, just an indicator that the message is done
+						break
+					case "content_block_start":
+						switch (chunk.content_block.type) {
+							case "text":
+								// we may receive multiple text blocks, in which case just insert a line break between them
+								if (chunk.index > 0) {
+									yield {
+										type: "text",
+										text: "\n",
+									}
+								}
 								yield {
 									type: "text",
-									text: "\n",
+									text: chunk.content_block.text,
 								}
-							}
-							yield {
-								type: "text",
-								text: chunk.content_block.text,
-							}
-							break
-					}
-					break
-				case "content_block_delta":
-					switch (chunk.delta.type) {
-						case "text_delta":
-							yield {
-								type: "text",
-								text: chunk.delta.text,
-							}
-							break
-					}
-					break
-				case "content_block_stop":
-					break
+								break
+						}
+						break
+					case "content_block_delta":
+						switch (chunk.delta.type) {
+							case "text_delta":
+								yield {
+									type: "text",
+									text: chunk.delta.text,
+								}
+								break
+						}
+						break
+					case "content_block_stop":
+						break
+				}
 			}
+		} catch (error) {
+			// Handle API errors with status and response
+			if (error.status && error.response) {
+				console.error("Stream error status:", error.status)
+				console.error("Stream error response:", error.response)
+			}
+			// Handle connection errors
+			else if (error instanceof Error) {
+				console.error("Stream connection error:", error.message)
+				console.error("Stream error stack:", error.stack)
+			}
+
+			throw error
 		}
 	}
 
