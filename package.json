@@ -1,22 +1,26 @@
 {
-	"name": "claude-dev",
-	"displayName": "Cline-ODM",
-	"description": "Omar's Autonomous coding agent right in your IDE, capable of creating/editing files, running commands, using the browser, and more with your permission every step of the way.",
+	"name": "odm-cline-fork",
+	"displayName": "ODM-Cline",
+	"description": "Omar's fork of the amazing cline Autonomous coding agent.",
 	"version": "3.8.4",
 	"icon": "assets/icons/icon.png",
+	"galleryBanner": {
+		"color": "#228822",
+		"theme": "dark"
+	},
 	"engines": {
 		"vscode": "^1.84.0"
 	},
 	"author": {
-		"name": "Cline Bot Inc."
+		"name": "Omar McIver"
 	},
 	"license": "Apache-2.0",
-	"publisher": "saoudrizwan",
+	"publisher": "omarmciver",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/cline/cline"
+		"url": "https://github.com/omarmciver/cline"
 	},
-	"homepage": "https://cline.bot",
+	"homepage": "https://github.com/omarmciver/cline",
 	"categories": [
 		"AI",
 		"Chat",
@@ -46,7 +50,7 @@
 			"activitybar": [
 				{
 					"id": "claude-dev-ActivityBar",
-					"title": "Cline",
+					"title": "Cline (ODM Fork)",
 					"icon": "assets/icons/icon.svg"
 				}
 			]
@@ -312,7 +316,8 @@
 		"publish:marketplace:prerelease": "vsce publish --pre-release && ovsx publish --pre-release",
 		"prepare": "husky",
 		"changeset": "changeset",
-		"version-packages": "changeset version"
+		"version-packages": "changeset version",
+		"create-vsix": "vsce package"
 	},
 	"devDependencies": {
 		"@changesets/cli": "^2.27.12",
@@ -331,6 +336,7 @@
 		"@typescript-eslint/parser": "^7.11.0",
 		"@vscode/test-cli": "^0.0.9",
 		"@vscode/test-electron": "^2.4.0",
+		"@vscode/vsce": "^2.24.0",
 		"chai": "^4.3.10",
 		"esbuild": "^0.25.0",
 		"eslint": "^8.57.0",
@@ -389,5 +395,6 @@
 		"turndown": "^7.2.0",
 		"web-tree-sitter": "^0.22.6",
 		"zod": "^3.24.2"
-	}
+	},
+	"packageManager": "pnpm@10.6.3+sha512.bb45e34d50a9a76e858a95837301bfb6bd6d35aea2c5d52094fa497a467c43f5c440103ce2511e9e0a2f89c3d6071baac3358fc68ac6fb75e2ceb3d2736065e6"
 }
