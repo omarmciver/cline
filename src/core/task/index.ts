@@ -96,7 +96,7 @@ export class Task {
 	autoApprovalSettings: AutoApprovalSettings
 	browserSettings: BrowserSettings
 	chatSettings: ChatSettings
-	compressedModeEnabled: boolean
+	compressedMode: boolean
 	apiConversationHistory: Anthropic.MessageParam[] = []
 	clineMessages: ClineMessage[] = []
 	private clineIgnoreController: ClineIgnoreController
@@ -138,7 +138,7 @@ export class Task {
 		autoApprovalSettings: AutoApprovalSettings,
 		browserSettings: BrowserSettings,
 		chatSettings: ChatSettings,
-		compressedModeEnabled: boolean,
+		compressedMode: boolean,
 		customInstructions?: string,
 		task?: string,
 		images?: string[],
@@ -159,7 +159,7 @@ export class Task {
 		this.autoApprovalSettings = autoApprovalSettings
 		this.browserSettings = browserSettings
 		this.chatSettings = chatSettings
-		this.compressedModeEnabled = compressedModeEnabled
+		this.compressedMode = compressedMode
 
 		// Initialize taskId first
 		if (historyItem) {
@@ -1833,7 +1833,7 @@ export class Task {
 										`The content was successfully saved to ${relPath.toPosix()}.\n\n` +
 										`1. You do not need to re-write the file with these changes, as they have already been applied.`
 
-									if (!this.compressedModeEnabled) {
+									if (!this.compressedMode) {
 										pushToolResult(
 											baseMessage +
 												`\n\n` +

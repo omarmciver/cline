@@ -40,8 +40,9 @@ export interface ExtensionMessage {
 		| "userCreditsPayments"
 		| "totalTasksSize"
 		| "addToInput"
+		| "compressedMode"
 	text?: string
-	compressedModeEnabled?: boolean
+	compressedMode?: boolean
 	action?:
 		| "chatButtonClicked"
 		| "mcpButtonClicked"
@@ -91,11 +92,12 @@ export const DEFAULT_PLATFORM = "unknown"
 
 export interface ExtensionState {
 	apiConfiguration?: ApiConfiguration
+	compressedMode: Boolean
 	autoApprovalSettings: AutoApprovalSettings
 	browserSettings: BrowserSettings
 	chatSettings: ChatSettings
-	compressedModeEnabled: boolean
 	checkpointTrackerErrorMessage?: string
+	initialMessage?: string
 	clineMessages: ClineMessage[]
 	currentTaskItem?: HistoryItem
 	customInstructions?: string

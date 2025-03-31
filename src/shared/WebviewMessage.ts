@@ -48,7 +48,7 @@ export interface WebviewMessage {
 		| "showAccountViewClicked"
 		| "authStateChanged"
 		| "authCallback"
-		| "compressedModeEnabled"
+		| "compressedMode"
 		| "fetchMcpMarketplace"
 		| "downloadMcp"
 		| "silentlyRefreshMcpMarketplace"
@@ -78,7 +78,7 @@ export interface WebviewMessage {
 	autoApprovalSettings?: AutoApprovalSettings
 	browserSettings?: BrowserSettings
 	chatSettings?: ChatSettings
-	compressedModeEnabled?: boolean
+	compressedMode?: boolean
 	chatContent?: ChatContent
 	mcpId?: string
 	timeout?: number
@@ -86,6 +86,7 @@ export interface WebviewMessage {
 	serverName?: string
 	toolNames?: string[]
 	autoApprove?: boolean
+	initialMessage?: string
 
 	// For auth
 	user?: UserInfo | null

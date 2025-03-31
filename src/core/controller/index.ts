@@ -44,6 +44,7 @@ import {
 } from "../storage/state"
 import { WebviewProvider } from "../webview"
 import { GlobalFileNames } from "../storage/disk"
+import { DEFAULT_COMPRESSED_MODE_ENABLED } from "../../shared/CompressedModeEnabled"
 
 /*
 https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/default/weather-webview/src/providers/WeatherViewProvider.ts
@@ -121,7 +122,7 @@ export class Controller {
 
 	async initClineWithTask(task?: string, images?: string[]) {
 		await this.clearTask() // ensures that an existing task doesn't exist before starting a new one, although this shouldn't be possible since user must clear task before starting a new one
-		const { apiConfiguration, customInstructions, autoApprovalSettings, browserSettings, chatSettings } =
+		const { apiConfiguration, customInstructions, compressedMode, autoApprovalSettings, browserSettings, chatSettings } =
 			await getAllExtensionState(this.context)
 		this.task = new Task(
 			this,
@@ -129,6 +130,7 @@ export class Controller {
 			autoApprovalSettings,
 			browserSettings,
 			chatSettings,
+			compressedMode,
 			customInstructions,
 			task,
 			images,
@@ -137,7 +139,7 @@ export class Controller {
 
 	async initClineWithHistoryItem(historyItem: HistoryItem) {
 		await this.clearTask()
-		const { apiConfiguration, customInstructions, autoApprovalSettings, browserSettings, chatSettings } =
+		const { apiConfiguration, customInstructions, compressedMode, autoApprovalSettings, browserSettings, chatSettings } =
 			await getAllExtensionState(this.context)
 		this.task = new Task(
 			this,
@@ -145,6 +147,7 @@ export class Controller {
 			autoApprovalSettings,
 			browserSettings,
 			chatSettings,
+			compressedMode,
 			customInstructions,
 			undefined,
 			undefined,
@@ -262,6 +265,15 @@ export class Controller {
 					await this.postStateToWebview()
 				}
 				break
+			case "compressedMode":
+				if (message.compressedMode !== undefined) {
+					await updateGlobalState(this.context, "compressedMode", message.compressedMode)
+					if (this.task) {
+						this.task.compressedMode = message.compressedMode
+					}
+					await this.postStateToWebview()
+				}
+				break
 			case "togglePlanActMode":
 				if (message.chatSettings) {
 					await this.togglePlanActModeWithChatSettings(message.chatSettings, message.chatContent)
@@ -285,7 +297,7 @@ export class Controller {
 			case "clearTask":
 				// newTask will start a new task with a given task text, while clear task resets the current session and allows for a new task to be started
 				await this.clearTask()
-				await this.postStateToWebview()
+				await this.postStateToWebview(message.initialMessage)
 				break
 			case "didShowAnnouncement":
 				await updateGlobalState(this.context, "lastShownAnnouncementId", this.latestAnnouncementId)
@@ -1582,13 +1594,14 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 		return updatedTaskHistory
 	}
 
-	async postStateToWebview() {
-		const state = await this.getStateToPostToWebview()
+	async postStateToWebview(chatContent?: string) {
+		const state = await this.getStateToPostToWebview(chatContent)
 		this.postMessageToWebview({ type: "state", state })
 	}
 
-	async getStateToPostToWebview(): Promise<ExtensionState> {
+	async getStateToPostToWebview(chatContent?: string): Promise<ExtensionState> {
 		const {
+			compressedMode,
 			apiConfiguration,
 			lastShownAnnouncementId,
 			customInstructions,
@@ -1604,6 +1617,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 
 		return {
 			version: this.context.extension?.packageJSON?.version ?? "",
+			compressedMode: compressedMode ?? DEFAULT_COMPRESSED_MODE_ENABLED,
 			apiConfiguration,
 			customInstructions,
 			uriScheme: vscode.env.uriScheme,
@@ -1624,6 +1638,7 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 			telemetrySetting,
 			planActSeparateModelsSetting,
 			vscMachineId: vscode.env.machineId,
+			initialMessage: chatContent,
 		}
 	}
 

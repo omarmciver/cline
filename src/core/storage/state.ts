@@ -10,6 +10,7 @@ import { BrowserSettings } from "../../shared/BrowserSettings"
 import { ChatSettings } from "../../shared/ChatSettings"
 import { TelemetrySetting } from "../../shared/TelemetrySetting"
 import { UserInfo } from "../../shared/UserInfo"
+import { DEFAULT_COMPRESSED_MODE_ENABLED } from "../../shared/CompressedModeEnabled"
 /*
 	Storage
 	https://dev.to/kompotkot/how-to-use-secretstorage-in-your-vscode-extensions-2hco
@@ -52,6 +53,7 @@ export async function getWorkspaceState(context: vscode.ExtensionContext, key: s
 
 export async function getAllExtensionState(context: vscode.ExtensionContext) {
 	const [
+		compressedMode,
 		storedApiProvider,
 		apiModelId,
 		apiKey,
@@ -116,6 +118,7 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		sambanovaApiKey,
 		planActSeparateModelsSettingRaw,
 	] = await Promise.all([
+		getGlobalState(context, "compressedMode") as Promise<boolean | undefined>,
 		getGlobalState(context, "apiProvider") as Promise<ApiProvider | undefined>,
 		getGlobalState(context, "apiModelId") as Promise<string | undefined>,
 		getSecret(context, "apiKey") as Promise<string | undefined>,
@@ -273,6 +276,7 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		lastShownAnnouncementId,
 		customInstructions,
 		taskHistory,
+		compressedMode: compressedMode ?? DEFAULT_COMPRESSED_MODE_ENABLED,
 		autoApprovalSettings: autoApprovalSettings || DEFAULT_AUTO_APPROVAL_SETTINGS, // default value can be 0 or empty string
 		browserSettings: browserSettings || DEFAULT_BROWSER_SETTINGS,
 		chatSettings: chatSettings || DEFAULT_CHAT_SETTINGS,

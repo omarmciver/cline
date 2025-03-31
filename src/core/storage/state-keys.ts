@@ -19,6 +19,7 @@ export type SecretKey =
 	| "xaiApiKey"
 	| "sambanovaApiKey"
 export type GlobalStateKey =
+	| "compressedMode"
 	| "apiProvider"
 	| "apiModelId"
 	| "awsRegion"

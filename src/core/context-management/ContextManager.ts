@@ -61,8 +61,8 @@ export class ContextManager {
 		// conversationHistoryDeletedRange is updated only when we're close to hitting the context window, so we don't continuously break the prompt cache
 		let truncatedConversationHistory = this.getTruncatedMessages(apiConversationHistory, conversationHistoryDeletedRange)
 
-		if(true){
-			truncatedConversationHistory = this.getCompressedMessages(truncatedConversationHistory);
+		if (true) {
+			truncatedConversationHistory = this.getCompressedMessages(truncatedConversationHistory)
 		}
 
 		return {
@@ -120,7 +120,6 @@ export class ContextManager {
 		// NOTE: if you try to console log these, don't forget that logging a reference to an array may not provide the same result as logging a slice() snapshot of that array at that exact moment. The following DOES in fact include the latest assistant message.
 		return [...messages.slice(0, start), ...messages.slice(end + 1)]
 	}
-
 
 	removeFileContentBlocks(text: string): string {
 		// Regex to match <file_content>...</file_content> blocks

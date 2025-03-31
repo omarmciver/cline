@@ -42,11 +42,12 @@ export const ExtensionStateContextProvider: React.FC<{
 		autoApprovalSettings: DEFAULT_AUTO_APPROVAL_SETTINGS,
 		browserSettings: DEFAULT_BROWSER_SETTINGS,
 		chatSettings: DEFAULT_CHAT_SETTINGS,
-		compressedModeEnabled: DEFAULT_COMPRESSED_MODE_ENABLED,
+		compressedMode: DEFAULT_COMPRESSED_MODE_ENABLED,
 		platform: DEFAULT_PLATFORM,
 		telemetrySetting: "unset",
 		vscMachineId: "",
 		planActSeparateModelsSetting: true,
+		initialMessage: undefined,
 	})
 	const [didHydrateState, setDidHydrateState] = useState(false)
 	const [showWelcome, setShowWelcome] = useState(false)
@@ -67,7 +68,6 @@ export const ExtensionStateContextProvider: React.FC<{
 				if (message.state) {
 					setState({
 						...message.state,
-						compressedModeEnabled: message.state.compressedModeEnabled ?? DEFAULT_COMPRESSED_MODE_ENABLED,
 					})
 				}
 				const config = message.state?.apiConfiguration
@@ -97,6 +97,15 @@ export const ExtensionStateContextProvider: React.FC<{
 					: false
 				setShowWelcome(!hasKey)
 				setDidHydrateState(true)
+				break
+			}
+			case "compressedMode": {
+				if (message.compressedMode !== undefined) {
+					setState((prevState) => ({
+						...prevState,
+						compressedMode: Boolean(message.compressedMode),
+					}))
+				}
 				break
 			}
 			case "theme": {

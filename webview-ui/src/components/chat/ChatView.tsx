@@ -38,7 +38,14 @@ interface ChatViewProps {
 export const MAX_IMAGES_PER_MESSAGE = 20 // Anthropic limits to 20 images
 
 const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryView }: ChatViewProps) => {
-	const { version, clineMessages: messages, taskHistory, apiConfiguration, telemetrySetting } = useExtensionState()
+	const {
+		version,
+		clineMessages: messages,
+		taskHistory,
+		apiConfiguration,
+		telemetrySetting,
+		initialMessage,
+	} = useExtensionState()
 
 	//const task = messages.length > 0 ? (messages[0].say === "task" ? messages[0] : undefined) : undefined) : undefined
 	const task = useMemo(() => messages.at(0), [messages]) // leaving this less safe version here since if the first message is not a task, then the extension is in a bad state and needs to be debugged (see Cline.abort)
@@ -177,14 +184,14 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 							setClineAsk("completion_result")
 							setEnableButtons(!isPartial)
 							setPrimaryButtonText("Start New Task")
-							setSecondaryButtonText(undefined)
+							setSecondaryButtonText("Start New Task With Context")
 							break
 						case "resume_task":
 							setTextAreaDisabled(false)
 							setClineAsk("resume_task")
 							setEnableButtons(true)
 							setPrimaryButtonText("Resume Task")
-							setSecondaryButtonText(undefined)
+							setSecondaryButtonText("Start New Task With Context")
 							setDidClickCancel(false) // special case where we reset the cancel button state
 							break
 						case "resume_completed_task":
@@ -192,7 +199,7 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 							setClineAsk("resume_completed_task")
 							setEnableButtons(true)
 							setPrimaryButtonText("Start New Task")
-							setSecondaryButtonText(undefined)
+							setSecondaryButtonText("Start New Task With Context")
 							setDidClickCancel(false)
 							break
 					}
@@ -251,6 +258,10 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 	useEffect(() => {
 		setExpandedRows({})
 	}, [task?.ts])
+
+	useEffect(() => {
+		setInputValue(initialMessage ?? "")
+	}, [initialMessage])
 
 	const isStreaming = useMemo(() => {
 		const isLastAsk = !!modifiedMessages.at(-1)?.ask // checking clineAsk isn't enough since messages effect may be called again for a tool for example, set clineAsk to its value, and if the next message is not an ask then it doesn't reset. This is likely due to how much more often we're updating messages as compared to before, and should be resolved with optimizations as it's likely a rendering bug. but as a final guard for now, the cancel button will show if the last message is not an ask
@@ -322,6 +333,10 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 		vscode.postMessage({ type: "clearTask" })
 	}, [])
 
+	const startNewTaskWithContext = useCallback((lastMessage?: string) => {
+		vscode.postMessage({ type: "clearTask", initialMessage: lastMessage })
+	}, [])
+
 	/*
 	This logic depends on the useEffect[messages] above to set clineAsk, after which buttons are shown and we then send an askResponse to the extension.
 	*/
@@ -386,6 +401,11 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 				case "auto_approval_max_req_reached":
 					startNewTask()
 					break
+				case "completion_result":
+				case "resume_completed_task":
+				case "resume_task":
+					startNewTaskWithContext(visibleMessages?.findLast((x) => true)?.text)
+					break
 				case "command":
 				case "tool":
 				case "browser_action_launch":
@@ -416,7 +436,7 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 			// setSecondaryButtonText(undefined)
 			disableAutoScrollRef.current = false
 		},
-		[clineAsk, startNewTask, isStreaming],
+		[clineAsk, startNewTask, startNewTaskWithContext, isStreaming],
 	)
 
 	const handleTaskCloseButtonClick = useCallback(() => {
