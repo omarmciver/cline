@@ -139,6 +139,7 @@ const AutoApproveMenu = ({ style }: AutoApproveMenuProps) => {
 					? `0.5px solid color-mix(in srgb, ${getAsVar(VSC_TITLEBAR_INACTIVE_FOREGROUND)} 20%, transparent)`
 					: "none",
 				overflowY: "auto",
+				backgroundColor: "darkblue",
 				...style,
 			}}>
 			<div style={{ margin: "6px 0" }}>
@@ -208,7 +209,7 @@ const AutoApproveMenu = ({ style }: AutoApproveMenuProps) => {
 							color: getAsVar(VSC_FOREGROUND),
 							whiteSpace: "nowrap",
 						}}>
-						Auto-approve 1:
+						Auto-approve:
 					</span>
 					<span
 						style={{

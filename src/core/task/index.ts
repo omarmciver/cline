@@ -1829,13 +1829,13 @@ export class Task {
 										),
 									)
 								} else {
-									const baseMessage =
-										`The content was successfully saved to ${relPath.toPosix()}.\n\n` +
-										`1. You do not need to re-write the file with these changes, as they have already been applied.`
+									const baseMessage = ""
 
 									if (!this.compressedMode) {
 										pushToolResult(
 											baseMessage +
+												`The content was successfully saved to ${relPath.toPosix()}.\n\n` +
+												`1. You do not need to re-write the file with these changes, as they have already been applied.` +
 												`\n\n` +
 												(autoFormattingEdits
 													? `Along with your edits, the user's editor applied the following auto-formatting to your content:\n\n${autoFormattingEdits}\n\n` +
@@ -1847,16 +1847,14 @@ export class Task {
 												`${newProblemsMessage}`,
 										)
 									} else {
-										pushToolResult(baseMessage + `\n\n${newProblemsMessage}`)
+										pushToolResult(
+											formatResponse.fileEditWithoutUserChanges(
+												relPath,
+												autoFormattingEdits,
+												newProblemsMessage,
+											),
+										)
 									}
-									pushToolResult(
-										formatResponse.fileEditWithoutUserChanges(
-											relPath,
-											autoFormattingEdits,
-											finalContent,
-											newProblemsMessage,
-										),
-									)
 								}
 
 								if (!fileExists) {

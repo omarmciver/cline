@@ -170,7 +170,6 @@ Otherwise, if you have not completed the task and do not need additional informa
 	fileEditWithoutUserChanges: (
 		relPath: string,
 		autoFormattingEdits: string | undefined,
-		finalContent: string | undefined,
 		newProblemsMessage: string | undefined,
 	) =>
 		`The content was successfully saved to ${relPath.toPosix()}.\n\n` +
@@ -180,7 +179,7 @@ Otherwise, if you have not completed the task and do not need additional informa
 			: "") +
 		// `Here is the full, updated content of the file that was saved:\n\n` +
 		// `<final_file_content path="${relPath.toPosix()}">\n${finalContent}\n</final_file_content>\n\n` +
-		`IMPORTANT: For any future changes to this file, use the expected content as your reference. You may need to read the file again if there are any changes the hinder the SEARCH / REPLACE for future changes to this same file.\n\n` +
+		`IMPORTANT: For any future changes to this file, use the expected content as your reference. You should ask to read the file again if there are any errors related to the SEARCH / REPLACE for future changes to this same file.\n\n` +
 		`${newProblemsMessage}`,
 
 	diffError: (relPath: string, originalContent: string | undefined) =>
