@@ -6,9 +6,10 @@ import { AutoApprovalSettings } from "./AutoApprovalSettings"
 import { BrowserSettings } from "./BrowserSettings"
 import { ChatSettings } from "./ChatSettings"
 import { HistoryItem } from "./HistoryItem"
-import { McpServer, McpMarketplaceCatalog, McpMarketplaceItem, McpDownloadResponse } from "./mcp"
+import { McpServer, McpMarketplaceCatalog, McpDownloadResponse, McpViewTab } from "./mcp"
 import { TelemetrySetting } from "./TelemetrySetting"
 import type { BalanceResponse, UsageTransaction, PaymentTransaction } from "../shared/ClineAccount"
+import { ClineRulesToggles } from "./cline-rules"
 
 // webview will hold state
 export interface ExtensionMessage {
@@ -24,6 +25,7 @@ export interface ExtensionMessage {
 		| "partialMessage"
 		| "openRouterModels"
 		| "openAiModels"
+		| "requestyModels"
 		| "mcpServers"
 		| "relinquishControl"
 		| "vsCodeLmModels"
@@ -35,23 +37,31 @@ export interface ExtensionMessage {
 		| "openGraphData"
 		| "isImageUrlResult"
 		| "didUpdateSettings"
+		| "addRemoteServerResult"
 		| "userCreditsBalance"
 		| "userCreditsUsage"
 		| "userCreditsPayments"
 		| "totalTasksSize"
 		| "addToInput"
+		| "browserConnectionResult"
+		| "scrollToSettings"
+		| "browserRelaunchResult"
+		| "relativePathsResponse" // Handles single and multiple path responses
+		| "fileSearchResults"
+		| "grpc_response" // New type for gRPC responses
 		| "compressedMode"
 	text?: string
 	compressedMode?: boolean
+	paths?: (string | null)[] // Used for relativePathsResponse
 	action?:
 		| "chatButtonClicked"
 		| "mcpButtonClicked"
 		| "settingsButtonClicked"
 		| "historyButtonClicked"
 		| "didBecomeVisible"
-		| "accountLoginClicked"
 		| "accountLogoutClicked"
 		| "accountButtonClicked"
+		| "focusChatInput"
 	invoke?: Invoke
 	state?: ExtensionState
 	images?: string[]
@@ -62,6 +72,7 @@ export interface ExtensionMessage {
 	partialMessage?: ClineMessage
 	openRouterModels?: Record<string, ModelInfo>
 	openAiModels?: string[]
+	requestyModels?: Record<string, ModelInfo>
 	mcpServers?: McpServer[]
 	customToken?: string
 	mcpMarketplaceCatalog?: McpMarketplaceCatalog
@@ -82,6 +93,29 @@ export interface ExtensionMessage {
 	userCreditsUsage?: UsageTransaction[]
 	userCreditsPayments?: PaymentTransaction[]
 	totalTasksSize?: number | null
+	success?: boolean
+	endpoint?: string
+	isBundled?: boolean
+	isConnected?: boolean
+	isRemote?: boolean
+	host?: string
+	mentionsRequestId?: string
+	results?: Array<{
+		path: string
+		type: "file" | "folder"
+		label?: string
+	}>
+	addRemoteServerResult?: {
+		success: boolean
+		serverName: string
+		error?: string
+	}
+	tab?: McpViewTab
+	grpc_response?: {
+		message?: any // JSON serialized protobuf message
+		request_id: string // Same ID as the request
+		error?: string // Optional error message
+	}
 }
 
 export type Invoke = "sendMessage" | "primaryButtonClick" | "secondaryButtonClick"
@@ -95,6 +129,7 @@ export interface ExtensionState {
 	compressedMode: Boolean
 	autoApprovalSettings: AutoApprovalSettings
 	browserSettings: BrowserSettings
+	remoteBrowserHost?: string
 	chatSettings: ChatSettings
 	checkpointTrackerErrorMessage?: string
 	initialMessage?: string
@@ -115,6 +150,8 @@ export interface ExtensionState {
 	}
 	version: string
 	vscMachineId: string
+	globalClineRulesToggles: ClineRulesToggles
+	localClineRulesToggles: ClineRulesToggles
 }
 
 export interface ClineMessage {
@@ -128,6 +165,7 @@ export interface ClineMessage {
 	partial?: boolean
 	lastCheckpointHash?: string
 	isCheckpointCheckedOut?: boolean
+	isOperationOutsideWorkspace?: boolean
 	conversationHistoryIndex?: number
 	conversationHistoryDeletedRange?: [number, number] // for when conversation history is truncated for API requests
 }
@@ -146,6 +184,8 @@ export type ClineAsk =
 	| "auto_approval_max_req_reached"
 	| "browser_action_launch"
 	| "use_mcp_server"
+	| "new_task"
+	| "condense"
 
 export type ClineSay =
 	| "task"
@@ -172,6 +212,7 @@ export type ClineSay =
 	| "deleted_api_reqs"
 	| "clineignore_error"
 	| "checkpoint_created"
+	| "load_mcp_documentation"
 
 export interface ClineSayTool {
 	tool:
@@ -187,6 +228,7 @@ export interface ClineSayTool {
 	content?: string
 	regex?: string
 	filePattern?: string
+	operationIsLocatedInWorkspace?: boolean
 }
 
 // must keep in sync with system prompt
@@ -224,6 +266,10 @@ export interface ClineAskQuestion {
 	question: string
 	options?: string[]
 	selected?: string
+}
+
+export interface ClineAskNewTask {
+	context: string
 }
 
 export interface ClineApiReqInfo {
