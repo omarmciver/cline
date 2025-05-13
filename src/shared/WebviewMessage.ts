@@ -15,6 +15,7 @@ export interface WebviewMessage {
 		| "newTask"
 		| "condense"
 		| "askResponse"
+		| "clearTask"
 		| "didShowAnnouncement"
 		| "selectImages"
 		| "exportCurrentTask"

@@ -300,15 +300,6 @@ export class Controller {
 				break
 			case "autoApprovalSettings":
 				if (message.autoApprovalSettings) {
-					await updateGlobalState(this.context, "autoApprovalSettings", message.autoApprovalSettings)
-					if (this.task) {
-						this.task.autoApprovalSettings = message.autoApprovalSettings
-					}
-					await this.postStateToWebview()
-				}
-				break
-			case "browserSettings":
-				if (message.autoApprovalSettings) {
 					const currentSettings = (await getAllExtensionState(this.context)).autoApprovalSettings
 					const incomingVersion = message.autoApprovalSettings.version ?? 1
 					const currentVersion = currentSettings?.version ?? 1
@@ -1792,8 +1783,8 @@ Here is the project's README to help you get started:\n\n${mcpDetails.readmeCont
 		return updatedTaskHistory
 	}
 
-	async postStateToWebview(chatContent?: string) {
-		const state = await this.getStateToPostToWebview(chatContent)
+	async postStateToWebview() {
+		const state = await this.getStateToPostToWebview()
 		this.postMessageToWebview({ type: "state", state })
 	}
 

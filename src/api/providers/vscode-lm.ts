@@ -1,21 +1,63 @@
 // import { Anthropic } from "@anthropic-ai/sdk"
 // import * as vscode from "vscode"
 // import { ApiHandler, SingleCompletionHandler } from "../"
-// import { calculateApiCostAnthropic } from "../../utils/cost"
-// import { ApiStream } from "../transform/stream"
-// import { convertToVsCodeLmMessages } from "../transform/vscode-lm-format"
-// import { SELECTOR_SEPARATOR, stringifyVsCodeLmModelSelector } from "../../shared/vsCodeSelectorUtils"
-// import { ApiHandlerOptions, ModelInfo, openAiModelInfoSaneDefaults } from "../../shared/api"
-import { Anthropic } from "@anthropic-ai/sdk"
-import * as vscode from "vscode"
-import { ApiHandler, SingleCompletionHandler } from "../"
-import { calculateApiCostAnthropic } from "@utils/cost"
-import { ApiStream } from "@api/transform/stream"
-import { convertToVsCodeLmMessages } from "@api/transform/vscode-lm-format"
-import { SELECTOR_SEPARATOR, stringifyVsCodeLmModelSelector } from "@shared/vsCodeSelectorUtils"
-import { ApiHandlerOptions, ModelInfo, openAiModelInfoSaneDefaults } from "@shared/api"
-import type { LanguageModelChatSelector as LanguageModelChatSelectorFromTypes } from "./types"
+// import { calculateApiCostAnthropic } from "@utils/cost"
+// import { ApiStream } from "@api/transform/stream"
+// import { convertToVsCodeLmMessages } from "@api/transform/vscode-lm-format"
+// import { SELECTOR_SEPARATOR, stringifyVsCodeLmModelSelector } from "@shared/vsCodeSelectorUtils"
+// import { ApiHandlerOptions, ModelInfo, openAiModelInfoSaneDefaults } from "@shared/api"
+// import type { LanguageModelChatSelector as LanguageModelChatSelectorFromTypes } from "./types"
 
+// // Cline does not update VSCode type definitions or engine requirements to maintain compatibility.
+// // This declaration (as seen in src/integrations/TerminalManager.ts) provides types for the Language Model API in newer versions of VSCode.
+// // Extracted from https://github.com/microsoft/vscode/blob/131ee0ef660d600cd0a7e6058375b281553abe20/src/vscode-dts/vscode.d.ts
+// // declare module "vscode" {
+// // 	enum LanguageModelChatMessageRole {
+// // 		User = 1,
+// // 		Assistant = 2,
+// // 	}
+// // 	enum LanguageModelChatToolMode {
+// // 		Auto = 1,
+// // 		Required = 2,
+// // 	}
+// // 	interface LanguageModelChatSelector {
+// // 		vendor?: string
+// // 		family?: string
+// // 		version?: string
+// // 		id?: string
+// // 	}
+// // 	interface LanguageModelChatTool {
+// // 		name: string
+// // 		description: string
+// // 		inputSchema?: object
+// // 	}
+// // 	interface LanguageModelChatRequestOptions {
+// // 		justification?: string
+// // 		modelOptions?: { [name: string]: any }
+// // 		tools?: LanguageModelChatTool[]
+// // 		toolMode?: LanguageModelChatToolMode
+// // 	}
+// // 	class LanguageModelTextPart {
+// // 		value: string
+// // 		constructor(value: string)
+// // 	}
+// // 	class LanguageModelToolCallPart {
+// // 		callId: string
+// // 		name: string
+// // 		input: object
+// // 		constructor(callId: string, name: string, input: object)
+// // 	}
+// // 	interface LanguageModelChatResponse {
+// // 		stream: AsyncIterable<LanguageModelTextPart | LanguageModelToolCallPart | unknown>
+// // 		text: AsyncIterable<string>
+// // 	}
+// // 	interface LanguageModelChat {
+// // 		readonly name: string
+// // 		readonly id: string
+// // 		readonly vendor: string
+// // 		readonly family: string
+// // 		readonly version: string
+// // 		readonly maxInputTokens: number
 // // Cline does not update VSCode type definitions or engine requirements to maintain compatibility.
 // // This declaration (as seen in src/integrations/TerminalManager.ts) provides types for the Language Model API in newer versions of VSCode.
 // // Extracted from https://github.com/microsoft/vscode/blob/131ee0ef660d600cd0a7e6058375b281553abe20/src/vscode-dts/vscode.d.ts
@@ -28,12 +70,7 @@ import type { LanguageModelChatSelector as LanguageModelChatSelectorFromTypes } 
 // 		Auto = 1,
 // 		Required = 2,
 // 	}
-// 	interface LanguageModelChatSelector {
-// 		vendor?: string
-// 		family?: string
-// 		version?: string
-// 		id?: string
-// 	}
+// 	interface LanguageModelChatSelector extends LanguageModelChatSelectorFromTypes {}
 // 	interface LanguageModelChatTool {
 // 		name: string
 // 		description: string
@@ -66,51 +103,6 @@ import type { LanguageModelChatSelector as LanguageModelChatSelectorFromTypes } 
 // 		readonly family: string
 // 		readonly version: string
 // 		readonly maxInputTokens: number
-// Cline does not update VSCode type definitions or engine requirements to maintain compatibility.
-// This declaration (as seen in src/integrations/TerminalManager.ts) provides types for the Language Model API in newer versions of VSCode.
-// Extracted from https://github.com/microsoft/vscode/blob/131ee0ef660d600cd0a7e6058375b281553abe20/src/vscode-dts/vscode.d.ts
-declare module "vscode" {
-	enum LanguageModelChatMessageRole {
-		User = 1,
-		Assistant = 2,
-	}
-	enum LanguageModelChatToolMode {
-		Auto = 1,
-		Required = 2,
-	}
-	interface LanguageModelChatSelector extends LanguageModelChatSelectorFromTypes {}
-	interface LanguageModelChatTool {
-		name: string
-		description: string
-		inputSchema?: object
-	}
-	interface LanguageModelChatRequestOptions {
-		justification?: string
-		modelOptions?: { [name: string]: any }
-		tools?: LanguageModelChatTool[]
-		toolMode?: LanguageModelChatToolMode
-	}
-	class LanguageModelTextPart {
-		value: string
-		constructor(value: string)
-	}
-	class LanguageModelToolCallPart {
-		callId: string
-		name: string
-		input: object
-		constructor(callId: string, name: string, input: object)
-	}
-	interface LanguageModelChatResponse {
-		stream: AsyncIterable<LanguageModelTextPart | LanguageModelToolCallPart | unknown>
-		text: AsyncIterable<string>
-	}
-	interface LanguageModelChat {
-		readonly name: string
-		readonly id: string
-		readonly vendor: string
-		readonly family: string
-		readonly version: string
-		readonly maxInputTokens: number
 
 // 		sendRequest(
 // 			messages: LanguageModelChatMessage[],
